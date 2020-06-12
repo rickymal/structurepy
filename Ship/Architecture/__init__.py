@@ -6,6 +6,7 @@ from shapely.geometry import Polygon
 
 class Ship(Geometry.Geometry):
     def __init__(self,):
+        self.geometry_composition_ = np.nan
         pass
             
     def load_table(self,path = 'table_example_2.txt'):
@@ -45,6 +46,10 @@ class Ship(Geometry.Geometry):
                     )
                     all_knunck.append(nKunckles.reshape(-1, 1))
         
+
+            self.geometry_composition_ = np.array(balizas,)
+            self.geometry_distances_ = np.array(positions,dtype=np.float16)
+
             return {
                 'balizas': np.array(balizas, ),
                 'knunck': np.array(all_knunck),

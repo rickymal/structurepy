@@ -78,7 +78,50 @@ class Geometry:
         return area, centroid[0],centroid[1]
 
 
+    @classmethod
+    def fromPerspective(cls,lof_geometrys,distances,cut_space):
+        lof_geometrys = x
+
+        lof_series = list()
+        for m in x:
+            tt = pd.DataFrame(m, columns = ['altura','largura'])
+            serie = tt.groupby('altura').max()
+            lof_series.append(serie)
+        table = pd.concat(lof_series,axis = 1)
+        if cut_space not in table.index:
+            table.loc[cut_space,:] = np.nan
+        
+        table = table.sort_index()
+        table_interpolated = table.interpolate(method = 'index')
+        axis_vector = table_interpolated.loc[cut_space,:]
+        new_axis = [axis_vector.values.ravel(), distances]
+        new_view = pd.DataFrame(new_axis,index = [f'P({np.array(cut_space,dtype = np.float16)})','distances'])
+        new_view_transposed = new_view.T.set_index('distances')
+        new_view_transposed.columns = pd.Series([cut_space],name = 'height')
+        print(new_view_transposed)
+        return new_view_transposed
+
 def hello():
     print("OLAR")
 
     
+
+if __name__ == '__main__':
+    test = np.array([
+        [0,0,],
+        [0,10,],
+        [10,10,],
+        [10,0],
+    ])
+
+
+    x = [test.copy() for _ in range(5)]
+    distances = np.linspace(0,10,5)
+    cut_space = 0.5
+
+    # retirar pontos cujos valores de 'y' são iguais
+
+    resposta = Geometry.fromPerspective(lof_geometrys = x,distances = distances,
+    cut_space = cut_space)
+
+    print(resposta)
