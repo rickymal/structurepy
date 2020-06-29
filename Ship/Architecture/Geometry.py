@@ -12,7 +12,11 @@ from shapely.geometry import Polygon
 import pdb
 import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
+from shapely import geometry
 
+
+def deprecated(function):
+    pass
 
 class Geometry:
     
@@ -21,6 +25,7 @@ class Geometry:
         c1 = len(poligono) > 3
         c2 = np.equal(poligono[0],poligono[-1])
         
+    @deprecated
     @classmethod
     def cut_axis2(cls,poligono,cut_axis):
         
@@ -72,6 +77,7 @@ class Geometry:
         
         # realizar a parte da máscara
 
+    @deprecated
     @classmethod
     def cut(cls,poligono,cut_axis):
         
@@ -118,6 +124,7 @@ class Geometry:
         
         # realizar a parte da máscara
     
+    @deprecated
     def attributes(self,poligono):
         #Obtendo a área e o centroid
         P = Polygon(poligono)
@@ -127,97 +134,172 @@ class Geometry:
         return area, centroid[0],centroid[1]
 
 
-    @classmethod
-    def fromPerspective(cls,lof_geometrys,distances,cut_space,axis = 1):
-        if axis == 0:
-            return lof_geometrys
-        elif axis == 1:
-            lof_geometrys = x
+    def _transversal_cut(self,polygon,cut_axis = 0.5,axis_to_cut ='horizontal'):
+        _CUT_AXIS = cut_axis
+        if _CUT_AXIS is None:
+            _CUT_AXIS = max(polygon[:,1]) #não haverá corte
 
-            lof_series = list()
-            for m in x:
-                tt = pd.DataFrame(m, columns = ['altura','largura'])
-                serie = tt.groupby('altura').max()
-                lof_series.append(serie)
-            table = pd.concat(lof_series,axis = 1)
-            if cut_space not in table.index:
-                table.loc[cut_space,:] = np.nan
-            table = table.sort_index()
-            table_interpolated = table.interpolate(method = 'index')
-            axis_vector = table_interpolated.loc[cut_space,:]
-            new_axis = [axis_vector.values.ravel(), distances]
-            new_view = pd.DataFrame(new_axis,index = [f'P({np.array(cut_space,dtype = np.float16)})','distances'])
-            new_view_transposed = new_view.T.set_index('distances')
-            new_view_transposed.columns = pd.Series([cut_space],name = 'height')
-            print(new_view_transposed)
-            return new_view_transposed
-        elif axis == 2:
+
+        suposted_polygon = polygon
+        if suposted_polygon[-1,0] != 0.0:
+            suposted_polygon = np.append(suposted_polygon,
+                                        [0,suposted_polygon[-1,1]])\
+                .reshape(-1,2)\
+                    .astype(np.float16)
+            
+        ring_polygon = geometry.LinearRing(suposted_polygon)
+        poligono = geometry.Polygon(ring_polygon)
+        if axis_to_cut == 'horizontal':
+            cut_line = geometry.LineString([
+                [-1.,_CUT_AXIS],
+                [max(suposted_polygon[:,0])+1.,_CUT_AXIS],
+                ])
+        elif axis_to_cut == 'vertical':
             pass
-
-
-    @classmethod
-    def from_another_Perspective(cls,lof_geometrys,distances,cut_space):
-        x = lof_geometrys
-
-        lof_series = list()
-        for m in x:
-            tt = pd.DataFrame(m, columns = ['altura','largura'])
-            serie = tt.groupby('altura').max()
-            lof_series.append(serie)
-        table = pd.concat(lof_series,axis = 1)
-        if cut_space not in table.index:
-            table.loc[cut_space,:] = np.nan
+            cut_line = geometry.LineString([
+                [_CUT_AXIS,-1.],
+                [_CUT_AXIS,max(suposted_polygon[:,1])+1.]
+                
+                ])
+        else:
+            raise Exception("The string inputet isn't undestood")
         
-        table = table.sort_index()
-        table_interpolated = table.interpolate(method = 'index')
-        axis_filted = table_interpolated.copy()
-        axis_filted[:] = 0.
-        axis_filted += distances
+        from shapely import ops 
+        data = ops.split(poligono,cut_line)
+        x,y = data[0].exterior.coords.xy
+        matrix_cut_representation = np.stack([x,y],axis = 1)
+        centroids = data[0].centroid.coords[0]
+        
+        return {
+            'numeric' : matrix_cut_representation,
+            'centroids' : centroids,
+            'area' : data[0].area,
+            'cut' : cut_axis,
+            }
+        
 
+    def _superior_cut(self,listOf_polygons,distances,cut_axis):    
+        lof = []
+        _CUT_AXIS = cut_axis    
+        sections = listOf_polygons
+        distances = distances
+        for section,distance in zip(sections,distances):
+            temp = self._transversal_cut(section,cut_axis = _CUT_AXIS)
+            max_value_x = temp['numeric'][:,0].max()
+            mm = temp['numeric']
+            mask = mm[:,1] == mm[:,1].max()
+            value_c = mm[mask][:,0].max()
+            lof.append([distance,value_c])
+            
+        numeric_lof = np.array(lof)
+        
+        if numeric_lof[-1,1] != 0.0:
+            numeric_lof = np.append(numeric_lof,
+                                                [numeric_lof[-1,0],0])\
+                        .reshape(-1,2)\
+                            .astype(np.float16)
+        
+        ring_polygon = geometry.LinearRing(numeric_lof)
+        poligono = geometry.Polygon(ring_polygon)
+        
+        return {
+            'numeric' : numeric_lof,
+            'centroids' : poligono.centroid.coords[0],
+            'area' : poligono.area,
+            'cut' : cut_axis,
+            }
+        
+    
+    def _lateral_cut(self,listOf_sections,distances,cut_axis):
+        lof = []
+        _CUT_AXIS = cut_axis    
+        for section,distance in zip(sections,distances):
+            temp = self._transversal_cut(section,cut_axis = _CUT_AXIS,axis_to_cut = 'vertical')
+            max_value_x = temp['numeric'][:,0].max()
+            mm = temp['numeric']
+            mask = mm[:,0] == mm[:,0].max()
+            value_c = mm[mask][:,1].min()
+            lof.append([distance,value_c])
+            
+        numeric_lof = np.array(lof)
+        
+        if numeric_lof[0,1] != 0.0:
+            
+            numeric_lof = np.insert(numeric_lof,
+                                    0,
+                                    [0.,numeric_lof[:,1].max()],)\
+                .reshape(-1,2).astype(np.float16)
+        
+        ring_polygon = geometry.LinearRing(numeric_lof)
+        poligono = geometry.Polygon(ring_polygon)
+        
+        return {
+            'numeric' : numeric_lof,
+            'centroids' : poligono.centroid.coords[0],
+            'area' : poligono.area,
+            'cut' : cut_axis,
+            
+            }
 
-        axis_vector = axis_filted.loc[cut_space,:]
-        new_axis = [axis_filted.index, axis_vector.values.ravel()]
-        new_view = pd.DataFrame(new_axis,index = ['height','distances'])
-        new_view_transposed = new_view.T.set_index('height')
-        new_view_transposed.columns = pd.Series([cut_space],name = 'height')
-        print(new_view_transposed)
-        return new_view_transposed
-
-def hello():
-    print("OLAR")
 
     
 
 if __name__ == '__main__':
-    test = np.array([
-        [0,0,],
-        [0,10,],
-        [10,10,],
-        [10,0],
-    ])
 
 
-    x = [test.copy() for _ in range(5)]
-    x.append([
-        [0,0,],
-        [0,10,],
-        [1,12,],
-        [2,13,],
-        [10,10],
-        [10,0,],
-    ])
+    def load_table(path = 'table_example.txt'):
+        def _load_table(path):
+            with open(path, 'r') as file:
+                conteudo = file.read().split("-------------------------------")
+                # # # print(conteudo[0].split('\n'))
+        
+                balizas = list()
+                all_knunck = list()
+                positions = list()
+                aplt = 3
+                for x in conteudo[:-1]:
+                    position = x.split('\n')[aplt - 3].split(':')[-1].replace(',', '.')
+                    position = float(position)
+                    x = x.split('\n')[aplt:]
+                    positions.append(
+                        position
+                    )
+                    aplt = 5
+                    nList = list()
+                    nKunckles = list()
+                    for position in x[:-1]:
+                        temp_2 = position.split()
+                        temp = [0., 0.]
+                        temp[0] = float(temp_2[0].replace(',', '.'))
+                        temp[1] = float(temp_2[1].replace(',', '.'))
+                        nList.append([temp[0:2]])
+                        if len(temp) == 3:
+                            nKunckles.append(True)
+                        else:
+                            nKunckles.append(False)
+                    values = np.array(nList, dtype=np.float16)
+                    nKunckles = np.array(nKunckles, dtype=np.float16)
+                    balizas.append(
+                        values.reshape(-1, 2)
+                    )
+                    all_knunck.append(nKunckles.reshape(-1, 1))
+        
+            return {
+                'balizas': np.array(balizas, ),
+                'knunck': np.array(all_knunck),
+                'position': np.array(positions, dtype=np.float16),
+            }
+        
+        r = _load_table(path = path)
+        balizas = r['balizas']
+        positions = r['position']        
+        return balizas,positions
 
 
 
-    distances = np.linspace(0,10,5)
-    cut_space = 0.5
-
-    # retirar pontos cujos valores de 'y' são iguais
-    #Geometry.cut_axis2(poligono=x[0],cut_axis = 5.2)
-    r = Geometry.cut(poligono=x[0],cut_axis = 5.2)
-    print('r'.center(80,'-'))
-    print(r)
-    resposta = Geometry.fromPerspective(lof_geometrys = x,distances = distances,
-    cut_space = cut_space,axis = 1)
-
-    print(resposta)
+    gem = Geometry()
+    sections, distances = load_table()
+    print("finished")
+    response = gem._superior_cut(sections,distances = distances,cut_axis = 0.5)
+    
+    

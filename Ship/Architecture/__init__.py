@@ -6,7 +6,8 @@ from shapely.geometry import Polygon
 
 class Ship(Geometry.Geometry):
     def __init__(self,):
-        self.geometry_composition_ = np.nan
+        self.Geometry_composition_attributes_list = dict()
+        print("Ship Constructed")
         pass
             
     def load_table(self,path = 'table_example_2.txt'):
@@ -47,7 +48,7 @@ class Ship(Geometry.Geometry):
                     all_knunck.append(nKunckles.reshape(-1, 1))
         
 
-            self.geometry_composition_ = np.array(balizas,)
+            self.Geometry_composition_attributes = np.array(balizas,)
             self.geometry_distances_ = np.array(positions,dtype=np.float16)
 
             return {
@@ -69,36 +70,50 @@ class Ship(Geometry.Geometry):
             x_[ind][:, 1] = x_[ind][:, 1] - minimus_x
         return x_
     
+
+    def attributes(self, poligono):
+        return super().attributes(poligono)
+
+    
     def attr(self,ship_draft):
         ship_draft_areas = list()
         ship_draft_centroids = list()
-        for draft in ship_drafts:
-            y_values = np.sort(draft[:,1].ravel())
+
+        lof_all_y_values = list()
+        for idebug,polygon_splitted in enumerate(ship_drafts):
+            y_values = np.sort(polygon_splitted[:,1].ravel())
             y_values = np.unique(y_values)
-            plt.plot(*draft.T)
+            lof_all_y_values.append(y_values) # para calculo de informações superiores 
+            #plt.plot(*polygon_splitted.T)
             areas = list()
             y_ = list()
             centroids = list()
             for y in y_values:
-                x = self.cut(draft,y)
-                area,centroid,_  = self.attributes(x)
-                plt.plot(*x.T)
+
+                x = self._transversal_cut(polygon_splitted,cut_axis = y,
+                axis_to_cut= 'horizontal')
+
+
+                
+                area,centroid,_ = x['area'],*x['centroids']
+                #plt.plot(*x['numeric'].T)
                 areas.append(area)
                 centroids.append(centroid)
                 y_.append(y)
-            plt.plot(y_,areas)
-            plt.show()
+            #plt.plot(y_,areas)
+            #plt.show()
             s_area = pd.Series(areas,index = y_)
             s_centroid = pd.Series(centroids,index = y_)
             ship_draft_areas.append(s_area)
             ship_draft_centroids.append(s_centroid)
+        print("chegou aqui") 
         dataframe_area = pd.DataFrame(ship_draft_areas).T * 2
         dataframe_centroid = pd.DataFrame(ship_draft_centroids).T
         dataframe_area_interpolated = dataframe_area.interpolate(method = 'index')
         dataframe_centroid_interpolated = dataframe_centroid.interpolate(method = 'index')
         dai = dataframe_area_interpolated
         dci = dataframe_centroid_interpolated
-        # Realizando calculo de volume
+        
         from scipy.integrate import simps
         # print(len(ship_distances))
         # print(len(dai))
@@ -133,13 +148,32 @@ class Ship(Geometry.Geometry):
                     index = index)
         lcb_table.columns.name = "Perspectiva"
         lcb_table.index.name = "draft for lcb"
-        
-        return {
-            'area' : dai,
-            'centroid' : dci,
-            'volum' : serie_volum,
-            'lcb' : lcb_table
-            }
+        print(type(self.Geometry_composition_attributes_list))
+        self.Geometry_composition_attributes_list['area_transversal'] = dai
+        self.Geometry_composition_attributes_list['kb'] = dci
+        self.Geometry_composition_attributes_list['volum'] = serie_volum
+        self.Geometry_composition_attributes_list['lcb'] = lcb_table
+
+        #Calcular Awl
+        concatenated_lof_all_y_values = np.concatenate(lof_all_y_values,axis = 0)
+        unique_lof_all_y_values = np.unique(concatenated_lof_all_y_values)
+        superior_data = [self._superior_cut(ship_draft,distances=ship_distances,cut_axis = y) for y in unique_lof_all_y_values]
+        superior_data_splitted = [(x['area'], x['centroids']) for x in superior_data]
+        superior_area,superior_centroids = tuple(zip(*superior_data_splitted))
+        self.Geometry_composition_attributes_list['awl'] = pd.Series(data = superior_area,index = unique_lof_all_y_values)
+        self.Geometry_composition_attributes_list['lcf'] = pd.Series(data = superior_centroids,index = unique_lof_all_y_values)
+
+        #Calcular kb : Já foi calculado quando se obteve o centroid dos valores transversais
+        km_data = [self._transversal_cut(polygon=polygon,cut_axis = None) for polygon in ship_draft]
+        km_dist = ship_distances
+        km_data_numeric = [km['area'] for km in km_data]
+        data = pd.Series(data = km_data_numeric,index = km_dist)
+        self.Geometry_composition_attributes_list['km'] = data
+
+        #Calcular deslocamento
+        deslocamento = self.Geometry_composition_attributes_list['volum'] * 1000
+        self.Geometry_composition_attributes_list['weight'] = deslocamento.copy()
+        return self.Geometry_composition_attributes_list
 
 
 ## startscript
@@ -155,7 +189,8 @@ if __name__ == '__main__':
     import os
     # print('path'.center(80,'-'))
     ship_drafts, ship_distances = boat.load_table(path = 'table_example.txt')
-    boat.attr(ship_drafts)
+    data_to_see = boat.attr(ship_drafts)
+    print('finished')
   
     
     
