@@ -173,6 +173,31 @@ class Ship(Geometry.Geometry):
         #Calcular deslocamento
         deslocamento = self.Geometry_composition_attributes_list['volum'] * 1000
         self.Geometry_composition_attributes_list['weight'] = deslocamento.copy()
+
+        #Calualr o lcf
+        directions = [x[:,1] for x in ship_draft]
+        concatenated_directions = np.concatenate(directions).ravel()
+        unique_directions = np.unique(concatenated_directions)
+
+        data = [self._superior_cut(listOf_polygons = ship_draft,cut_axis = x,distances=ship_distances)['numeric'] for x in unique_directions]
+        def compose(poligono):
+            poligono = Polygon(poligono)
+            return pd.Series(data = tuple(poligono.centroid.coords)[0], index = ['x','y'],name = "Centroids")
+
+
+        lcfs = [compose(poligono) for poligono in data]
+        dataframe = pd.concat(lcfs,axis = 1,keys = ['C{}'.format(x+1) for x in range(len(lcfs))])
+        table = dataframe.T
+        table.index = pd.Series(data = unique_directions,name = "Posição na altura")
+        self.Geometry_composition_attributes_list['lcf'] = table
+
+        
+        
+        # Calculando a inercia
+        inertia_data = [self.inertia(x) for x in data]
+        inertia_x = [abs(x[0]) for x in inertia_data]
+        
+        self.Geometry_composition_attributes_list['lcf'] = data
         return self.Geometry_composition_attributes_list
 
 

@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 from shapely.geometry import Polygon
 from shapely import geometry
 
+import matplotlib.pyplot as plt
+from math import atan2, sin, cos, sqrt, pi, degrees
 
 def deprecated(function):
     pass
@@ -133,6 +135,51 @@ class Geometry:
         centroid = tuple(*centroid)
         return area, centroid[0],centroid[1]
 
+
+
+    def area(self,pts):
+        'Área do centroid'
+
+        if np.equal(pts[0],pts[-1]).all():
+            pts = pts + pts[:1]
+        x = [ c[0] for c in pts ]
+        y = [ c[1] for c in pts ]
+        s = 0
+        for i in range(len(pts) - 1):
+            s += x[i]*y[i+1] - x[i+1]*y[i]
+        return s/2
+
+
+    def centroid(self,pts):
+        'Localização do centroid.'
+        
+        if np.equal(pts[0],pts[-1]).all():
+            pts = pts + pts[:1]
+        x = [ c[0] for c in pts ]
+        y = [ c[1] for c in pts ]
+        sx = sy = 0
+        a = self.area(pts)
+        for i in range(len(pts) - 1):
+            sx += (x[i] + x[i+1])*(x[i]*y[i+1] - x[i+1]*y[i])
+            sy += (y[i] + y[i+1])*(x[i]*y[i+1] - x[i+1]*y[i])
+        return sx/(6*a), sy/(6*a)
+
+
+    def inertia(self,pts):
+        'Momento e o produto de inércia.'
+        
+        if np.equal(pts[0],pts[-1]).all():
+            pts = pts + pts[:1]
+        x = [ c[0] for c in pts ]
+        y = [ c[1] for c in pts ]
+        sxx = syy = sxy = 0
+        a = self.area(pts)
+        cx, cy = self.centroid(pts)
+        for i in range(len(pts) - 1):
+            sxx += (y[i]**2 + y[i]*y[i+1] + y[i+1]**2)*(x[i]*y[i+1] - x[i+1]*y[i])
+            syy += (x[i]**2 + x[i]*x[i+1] + x[i+1]**2)*(x[i]*y[i+1] - x[i+1]*y[i])
+            sxy += (x[i]*y[i+1] + 2*x[i]*y[i] + 2*x[i+1]*y[i+1] + x[i+1]*y[i])*(x[i]*y[i+1] - x[i+1]*y[i])
+        return sxx/12 - a*cy**2, syy/12 - a*cx**2, sxy/24 - a*cx*cy
 
     def _transversal_cut(self,polygon,cut_axis = 0.5,axis_to_cut ='horizontal'):
         _CUT_AXIS = cut_axis
