@@ -190,14 +190,59 @@ class Ship(Geometry.Geometry):
         table = dataframe.T
         table.index = pd.Series(data = unique_directions,name = "Posição na altura")
         self.Geometry_composition_attributes_list['lcf'] = table
+        
+        
+        
+        # Calculando a inercia no eixo superior para o calculo do bmt
+        inertia_data = [self.inertia(x) for x in data]
+        inertia_longitudinal = [abs(x[0]) for x in inertia_data] # Momento de inércia no plano de flutuação
+        
+        self.Geometry_composition_attributes_list['inertia_longitudinal'] = inertia_longitudinal
+
+        # Calculando o momento de inercia transversal
+        data = [[self._transversal_cut(polygon = poligono, cut_axis = x,axis_to_cut='horizontal')['numeric']\
+            for x in poligono[:,1]] for poligono in ship_draft]
+
+        def transform(listOf_polygons,distances):
+            lof_series = list()
+            for poligono in listOf_polygons:
+                lof_data = list()
+                for x in poligono[:,1]:
+                    data = self._transversal_cut(polygon=poligono, cut_axis=x)['numeric']
+                    lof_data.append(self.inertia(data)[0]) # retornando Ixx
+                serie = pd.Series(data = lof_data,index = poligono[:,1],name = "draft")
+                lof_series.append(serie)
+            concatenated_data = pd.concat(lof_series,keys=['distance({})'.format(x) for x in distances],axis = 0)
+            return concatenated_data
+
+        data_transformed = transform(listOf_polygons=ship_draft,distances=ship_distances)
+        self.Geometry_composition_attributes_list['transversal_inertia'] = data_transformed
+        inertia_data = [self.inertia(x) for x in data]
+
+        # Infelizmente não sei se devo me preocupar com os intervalos discretos obtidos.. irei fazer uma interpolação dos dados disponíveis
+        def join_data(serie, deslocamento):
+            lvl1 = serie.index
+            lvl2 = deslocamento.index
+            unique_level = np.concatenate([lvl1,lvl2])
+            serie_unique = pd.Series(1,index = unique_level)
+            lvl1_uniqued = serie * serie_unique
+            lvl2_uniqued = deslocamento * serie_unique
+            lvl1_uniqued_interpolated = lvl1_uniqued.interpolate(method = 'index')
+            lvl2_uniqued_interpolated = lvl2_uniqued.interpolate(method = 'index')
+            division = lvl1_uniqued_interpolated / lvl2_uniqued_interpolated
+            return division
+            
+
+        data_transformed_divided = data_transformed.groupby(level = 1).apply(join_data,deslocamento = deslocamento)
+        self.Geometry_composition_attributes_list['bmt'] = Bmt
 
         
-        
-        # Calculando a inercia
-        inertia_data = [self.inertia(x) for x in data]
-        inertia_x = [abs(x[0]) for x in inertia_data]
-        
-        self.Geometry_composition_attributes_list['lcf'] = data
+        #Bmt
+        #Bmt = inertia_longitudinal / deslocamento.values
+        #table_bmt = pd.Series(data = Bmt,index = unique_directions,name = "bmt")
+        #self.Geometry_composition_attributes_list['bmt'] = Bmt
+
+
         return self.Geometry_composition_attributes_list
 
 
@@ -216,11 +261,3 @@ if __name__ == '__main__':
     ship_drafts, ship_distances = boat.load_table(path = 'table_example.txt')
     data_to_see = boat.attr(ship_drafts)
     print('finished')
-  
-    
-    
-    
-    
-    
-    
-    
