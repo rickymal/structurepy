@@ -17,8 +17,8 @@ from shapely import geometry
 import matplotlib.pyplot as plt
 from math import atan2, sin, cos, sqrt, pi, degrees
 
-def deprecated(function):
-    pass
+
+from deprecation import deprecated
 
 class Geometry:
     
