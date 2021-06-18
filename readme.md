@@ -1,0 +1,1 @@
+- [] Verificar o método "Trasversal_cut" para saber se este está calculando corretamente a área e o centroide das seções transversais

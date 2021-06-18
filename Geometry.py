@@ -19,6 +19,8 @@ class TransversalSectionComposer:
     def setAttribute(self,name,attributeData):
         if hasattr(self,"primitive_geometry_attributes"):
             self.primitive_geometry_attributes[name] = attributeData
+        else:
+            raise Exception("[Internal error] attribute 'primitive_geometry_attributes' not found")
 
     @classmethod
     def isPolygon(cls,polygon):
@@ -71,11 +73,6 @@ class TransversalSectionComposer:
 
         polygon_index = pd.Series(data = [i+1 for i in distances],name = "Distances")
 
-#        dataframe_area = \
-#            pd.DataFrame(data = attrs['area'],columns = polygon_index)        
-#        dataframe_centroid = \
-#            pd.DataFrame(data = attrs['centroid'],columns = polygon_index)
-
         dataframe_area = pd.concat(attrs['area'],axis = 1).interpolate(method = 'index',limit_area = 'inside')
         dataframe_area.columns = polygon_index
 
@@ -91,39 +88,35 @@ class TransversalSectionComposer:
         """
         Existem alguns pontos a se analise no código do cálculo do volume. Eu retiro todos os dados inexistente de área os os deixo com valor zero?
         """
+        if False:
+            y_positions = dataframe_area.index
+            lof_volums = list()
+            for i in range(len(y_positions)):
+                serie = dataframe_area.loc[y_positions[i],:]
+                serie_dropped = serie.replace(np.nan,0.0)
+                x = serie_dropped.index
+                y = serie_dropped.values
+                from scipy import integrate
+
+                if 'integration_type' in kwargs:
+                    integration_type = kwargs['integration_type']
+                else:
+                    integration_type = 'trapz'
+
+
+                if integration_type == 'trapz':
+                    volum = integrate.trapz(y = y,x = x)
+                elif integration_type == 'simps':
+                    volum = integrate.simps(y = y,x = x)
+
+                lof_volums.append(volum)
+
+            serie_volum = pd.Series(data = lof_volums,index = y_positions,name = "Volume deslocado")
+
+            self.primitive_geometry_attributes["volum"] = serie_volum
+        else:
+            pass
         
-        y_positions = dataframe_area.index
-        lof_volums = list()
-        for i in range(len(y_positions)):
-            serie = dataframe_area.loc[y_positions[i],:]
-            serie_dropped = serie.replace(np.nan,0.0)
-            x = serie_dropped.index
-            y = serie_dropped.values
-            from scipy import integrate
-
-            if 'integration_type' in kwargs:
-                integration_type = kwargs['integration_type']
-            else:
-                integration_type = 'trapz'
-
-
-            if integration_type == 'trapz':
-                volum = integrate.trapz(y = y,x = x)
-            elif integration_type == 'simps':
-                volum = integrate.simps(y = y,x = x)
-
-            lof_volums.append(volum)
-
-        serie_volum = pd.Series(data = lof_volums,index = y_positions,name = "Volume deslocado")
-
-        self.primitive_geometry_attributes["volum"] = serie_volum
-
-        """
-        Como obter a integração exata do volume?
-        """
-
-        pass
-
 
     @classmethod
     def fromNumeric(cls,numeric_value, distances,perspective,**kwargs):
@@ -137,7 +130,7 @@ class TransversalSectionComposer:
         newInstance.distances = distances
         if len(numeric_value[0][0,:]) == 3:
             newInstance.isMatrix = True
-            raise NotImplementedError
+            raise NotImplementedError("Operations with 3D matrizes is not implemented yet")
         else:
             newInstance.isMatrix = False
         print("Criando uma nova instancia")
@@ -210,7 +203,7 @@ class TransversalSectionComposer:
                 
                 ])
         else:
-            raise Exception("The string inputet isn't undestood")
+            raise Exception("The axis_to_cut parameter need to be 'vertical' or 'horizontal' ")
         
         from shapely import ops 
         data = ops.split(poligono,cut_line)
@@ -324,7 +317,7 @@ class TransversalSectionComposer:
 
 
     def area(self,pts):
-        'Área do centroid'
+        
 
         if np.equal(pts[0],pts[-1]).all():
             pts = pts + pts[:1]
