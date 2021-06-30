@@ -30,8 +30,10 @@ class ShipArchitecture(TransversalSectionComposer):
    
         l = 100
         volume_content = list()
-        for _, area in dataframe_area.loc[2:,:].iterrows():
-            
+        import pdb
+        for _, area in dataframe_area.iterrows():
+            # pdb.set_trace()
+            print("content")
             if len(area.dropna()) == 1:
                 print("O conteudo não possui valores suficientes para integração numérica")
                 volume_content.append(np.nan)
@@ -43,10 +45,13 @@ class ShipArchitecture(TransversalSectionComposer):
             tt_dropped = tt.dropna()
             nl = integrate.trapz(y = tt_dropped.loc[:,'area'].values,x = tt_dropped.loc[:,'distances'].values)
             volume_content.append(nl)
-            import pdb
-            pdb.set_trace()
+            
+            
             pass
-        return dataframe_volume
+        data_result = pd.Series(volume_content, index = dataframe_area.index)
+        data_result.name = "Volume (meters)"
+        self.primitive_geometry_attributes['volume'] = data_result.copy()
+        return data_result
     def awl(self):
         pass
 
@@ -90,10 +95,12 @@ class ShipArchitecture(TransversalSectionComposer):
         pass
 
 if __name__ == "__main__":
-    data = loader.fromDelfShipTable(path = 'table.txt')
+    data = loader.fromDelfShipTable(path = 'square.txt')
     geometry = ShipArchitecture.fromNumeric(numeric_value = data[0], distances = data[1],perspective = 'transversal')
     # geometry.primitive_geometry_attributes['area'].plot()
     # plt.show()
+    print(geometry.primitive_geometry_attributes['area'].dropna())
     print(geometry.volume())
-    geometry.volume().plot()
-    plt.show()
+
+    # geometry.volume().plot()
+    # plt.show()

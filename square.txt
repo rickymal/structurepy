@@ -1,0 +1,107 @@
+Station :0,000
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :1,438
+Number of segments :1
+     Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :2,875
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :4,313
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :5,750
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :7,188
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :8,625
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :10,063
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :11,500
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :12,937
+Number of segments :1
+   Segment 1
+       0	0
+	10	0
+	10	10
+	0	10
+-------------------------------
+
+Station :14,375
+Number of segments :1
+   Segment 1
+       0	0
+	10	10
+	10	10
+	0	10
+-------------------------------
+
+Station :15,813
+Number of segments :1
+   Segment 1
+       0	0
+	10	10
+	0	10
+-------------------------------
+

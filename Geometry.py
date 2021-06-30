@@ -71,7 +71,7 @@ class TransversalSectionComposer:
             attrs['centroid'].append(serie_centroid.drop_duplicates())
             #attrs['numeric'].append(serie_numeric)
 
-        polygon_index = pd.Series(data = [i+1 for i in distances],name = "Distances")
+        polygon_index = pd.Series(data = [i for i in distances],name = "Distances")
 
         dataframe_area = pd.concat(attrs['area'],axis = 1).interpolate(method = 'index',limit_area = 'inside')
         dataframe_area.columns = polygon_index
@@ -80,6 +80,9 @@ class TransversalSectionComposer:
         dataframe_centroid.columns = polygon_index
 
         dataframe_area = dataframe_area * 2
+
+        dataframe_area.index = pd.Series(dataframe_area.index.values, name = "Distance at height (doubled)")
+        dataframe_area.columns = pd.Series(dataframe_area.columns.values, name = "Distance in length")
 
         self.primitive_geometry_attributes['area'] = dataframe_area
         self.primitive_geometry_attributes['centroid'] = dataframe_area
