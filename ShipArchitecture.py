@@ -94,13 +94,9 @@ class ShipArchitecture(TransversalSectionComposer):
     def MTcm(self):
         pass
 
-if __name__ == "__main__":
-    data = loader.fromDelfShipTable(path = 'square.txt')
-    geometry = ShipArchitecture.fromNumeric(numeric_value = data[0], distances = data[1],perspective = 'transversal')
-    # geometry.primitive_geometry_attributes['area'].plot()
-    # plt.show()
-    print(geometry.primitive_geometry_attributes['area'].dropna())
-    print(geometry.volume())
 
-    # geometry.volume().plot()
-    # plt.show()
+data = loader.fromDelfShipTable(path = 'square.txt')
+geometry = ShipArchitecture.fromNumeric(numeric_value = data[0], distances = data[1],perspective = 'transversal')
+print(geometry.primitive_geometry_attributes['area'].dropna())
+print(geometry.volume())
+

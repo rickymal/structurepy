@@ -1,3 +1,7 @@
 {
-    "python.pythonPath": "C:\\Users\\Henrique Mauler\\anaconda3\\envs\\naval\\python.exe"
+    "python.pythonPath": "C:\\Users\\Henrique Mauler\\anaconda3\\envs\\naval\\python.exe",
+    "cSpell.words": [
+        "numpy",
+        "pyplot"
+    ]
 }
