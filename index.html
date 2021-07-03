@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P5 tests</title>
+    <script src="./p5/p5.js"></script>
+    <script type="module" src="./p5/Ship.js"></script>
+    <script type="module" src="./p5/sketch.js"></script>
+    <script type = "module">
+        const drawable = new Ship()
+
+        let sketch = function(p) {
+            p.setup = setup
+            p.draw = draw
+        }
+
+        // new p5(sketch,window.document.getElementById('container'))]
+        new p5(sketch)
+    </script>
+    <style>
+        #container {
+            width: 500px;
+            height: 500px;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+
+</head>
+<body>
+    <main>
+        
+    </main>
+</body>
+</html>
