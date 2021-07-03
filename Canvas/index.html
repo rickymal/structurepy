@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Canvas tests</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin: 30px;
+        width: 100vw;
+        height: 100vh;
+      }
+
+
+      div {
+          background-color: beige;
+          width: 800px;
+          height: 800px;
+          
+      }
+
+    </style>
+  </head>
+  <body>
+    <h1>oisdsdsadsadsadas</h1>
+    <div>
+        <canvas id="canvas"></canvas>
+    </div>
+    <script>
+      function drawLine(ctx, begin, end, stroke = "black", width = 1) {
+        if (stroke) {
+          ctx.strokeStyle = stroke;
+        }
+
+        if (width) {
+          ctx.lineWidth = width;
+        }
+
+        ctx.beginPath();
+        ctx.moveTo(...begin);
+        ctx.lineTo(...end);
+        ctx.stroke();
+      }
+
+      console.log("work");
+      const canvas = document.getElementById("canvas");
+      const body = document.getElementsByTagName('body')
+      const div = document.getElementsByTagName('div')
+      const ctx = canvas.getContext("2d");
+      
+      // ctx.fillRect(10, 10, 150, 100);
+      //ctx.width = window.innerWidth
+      //ctx.height = window.innerHeight
+      
+      canvas.width = 500
+      canvas.height = 500
+      
+      // plano de linha do alto
+      
+      drawLine(ctx, [0, 400], [40, 500], "blue", 1);
+      drawLine(ctx, [40, 500], [500, 500], "black", 1);
+      drawLine(ctx, [500, 500], [540, 40], "black", 1);
+
+      
+      
+    </script>
+  </body>
+</html>

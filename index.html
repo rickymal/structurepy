@@ -6,8 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P5 tests</title>
     <script src="./p5/p5.js"></script>
-    <script src="./p5/sketch.js"></script>
-    <script>
+    <script type="module" src="./p5/Ship.js"></script>
+    <script type="module" src="./p5/sketch.js"></script>
+    <script type = "module">
+        const drawable = new Ship()
+
         let sketch = function(p) {
             p.setup = setup
             p.draw = draw
