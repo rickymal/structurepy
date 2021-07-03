@@ -42,7 +42,31 @@ class TransversalSectionComposer:
     def _load_attributes(self):
         return self.primitive_geometry_attributes
 
-    def _create_attributes(self, **kwargs):
+    def get_axis_values_unified(self, axis : str or int = 'y'):
+        if 'numeric' not in self.representations:
+            raise Exception("The representations wasn't found.")
+        import pdb
+        if isinstance(axis,str):
+            if axis == 'y':
+                axis = 1
+            elif axis == 'x':
+                axis = 0
+            else:
+                raise Exception("The parameter axis inserted was not recognized. The value was: " + axis)
+        else:
+            if axis != 0 or axis != 1:
+                raise Exception("The parameter axis inserted was not recognized. The value was: " + axis)
+
+        axis_values_disposable = np.concatenate(self.representations['numeric'], axis = 0)[:,axis]
+        axis_values_unique = np.unique(axis_values_disposable)
+        return axis_values_unique
+        
+
+    def _create_superior_attributes(self, **kwargs):
+        y_axis = self.get_axis_values_unified(axis = 'y')
+
+
+    def _create_transversal_attributes(self, **kwargs):
         distances = self.distances
         polygons = self.representations['numeric']
 
@@ -84,8 +108,11 @@ class TransversalSectionComposer:
         dataframe_area.index = pd.Series(dataframe_area.index.values, name = "Distance at height (doubled)")
         dataframe_area.columns = pd.Series(dataframe_area.columns.values, name = "Distance in length")
 
-        self.primitive_geometry_attributes['area'] = dataframe_area
-        self.primitive_geometry_attributes['centroid'] = dataframe_area
+        self.primitive_geometry_attributes['transversal area'] = dataframe_area
+        self.primitive_geometry_attributes['transversal centroid'] = dataframe_centroid
+        self.primitive_geometry_attributes['transversal numeric'] = attrs['numeric']
+
+        
 
         # Calculo do volume
         """
@@ -123,23 +150,28 @@ class TransversalSectionComposer:
 
     @classmethod
     def fromNumeric(cls,numeric_value, distances,perspective,**kwargs):
-        newInstance = cls()
+        new_instance = cls()
         
         if 'basify' in kwargs and kwargs['basify']:
-            numeric_value = newInstance._basify(numeric_value)
+            numeric_value = new_instance._basify(numeric_value)
 
-        newInstance.representations['numeric'] = numeric_value
-        newInstance.perspective = perspective
-        newInstance.distances = distances
+        new_instance.representations['numeric'] = numeric_value
+        new_instance.perspective = perspective
+        new_instance.distances = distances
+
+
         if len(numeric_value[0][0,:]) == 3:
-            newInstance.isMatrix = True
+            new_instance.isMatrix = True
             raise NotImplementedError("Operations with 3D matrizes is not implemented yet")
         else:
-            newInstance.isMatrix = False
+            new_instance.isMatrix = False
         print("Criando uma nova instancia")
-        newInstance._create_attributes(**kwargs)
+        new_instance._create_transversal_attributes(**kwargs)
 
-        return newInstance
+
+        new_instance._create_superior_attributes(**kwargs)
+
+        return new_instance
         pass
 
     #Composição de atributos
