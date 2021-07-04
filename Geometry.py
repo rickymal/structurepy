@@ -1,3 +1,4 @@
+from operator import pos
 import pandas as pd
 import numpy as np
 from scipy import integrate
@@ -9,7 +10,7 @@ from deprecation import deprecated
 from collections import namedtuple
 from numpy import nan
 from numpy import interp
-
+import pdb
 
 class TransversalSectionComposer:
     """
@@ -45,7 +46,6 @@ class TransversalSectionComposer:
     def get_axis_values_unified(self, axis : str or int = 'y'):
         if 'numeric' not in self.representations:
             raise Exception("The representations wasn't found.")
-        import pdb
         if isinstance(axis,str):
             if axis == 'y':
                 axis = 1
@@ -64,7 +64,17 @@ class TransversalSectionComposer:
 
     def _create_superior_attributes(self, **kwargs):
         y_axis = self.get_axis_values_unified(axis = 'y')
+        
+        polygons = self.representations['numeric']
+        attrs = dict(area = [], centroid = [], numeric = [])
 
+
+        
+        cut_superior = self._superior_cut(polygons,self.representations['distances'],cut_axis = None)
+        print(cut_superior)
+        pdb.set_trace()
+        quit()
+        
 
     def _create_transversal_attributes(self, **kwargs):
         distances = self.distances
@@ -151,13 +161,20 @@ class TransversalSectionComposer:
     @classmethod
     def fromNumeric(cls,numeric_value, distances,perspective,**kwargs):
         new_instance = cls()
+        import pdb
+
+        # Obter a distancia
         
+
+
+        # fim
         if 'basify' in kwargs and kwargs['basify']:
             numeric_value = new_instance._basify(numeric_value)
 
         new_instance.representations['numeric'] = numeric_value
         new_instance.perspective = perspective
         new_instance.distances = distances
+        new_instance.representations['distances'] = distances
 
 
         if len(numeric_value[0][0,:]) == 3:
@@ -166,10 +183,10 @@ class TransversalSectionComposer:
         else:
             new_instance.isMatrix = False
         print("Criando uma nova instancia")
-        new_instance._create_transversal_attributes(**kwargs)
 
 
         new_instance._create_superior_attributes(**kwargs)
+        new_instance._create_transversal_attributes(**kwargs)
 
         return new_instance
         pass
@@ -209,39 +226,51 @@ class TransversalSectionComposer:
         raise NotImplementedError
 
 
-    def _transversal_cut(self,polygon,cut_axis = 0.5,axis_to_cut ='horizontal'):
+    def _transversal_cut(self,polygon : np.ndarray ,cut_axis : float = 0.5  ,axis_to_cut : str ='horizontal'):
+  
+        # pdb.set_trace()
         _CUT_AXIS = cut_axis
         x_ = polygon[:,0]
         y_ = polygon[:,1]
         if _CUT_AXIS is None:
-            _CUT_AXIS = max(polygon[:,1]) #não haverá corte
+            _CUT_AXIS = max(polygon[:,1]) #it won't make cut
 
-        suposted_polygon = polygon
+        suposted_polygon = polygon 
+        # the name is "suposted_polygon" because it not known yet if this matrix is closed
+
+        # The matrix is closed? If not, this piece of code will extends the line to 0 coordinate at 'x'
         if suposted_polygon[-1,0] != 0.0:
             suposted_polygon = np.append(suposted_polygon,
-                                        [0,suposted_polygon[-1,1]])\
-                .reshape(-1,2)\
-                    .astype(np.float16)
+                                        [0,suposted_polygon[-1,1]]).reshape(-1,2).astype(np.float16)
 
-        ring_polygon = geometry.LinearRing(suposted_polygon)
-        poligono = geometry.Polygon(ring_polygon)
+        the_real_polygon = suposted_polygon
+        ring_polygon = geometry.LinearRing(the_real_polygon)
+        polygon_object = geometry.Polygon(ring_polygon)
         if axis_to_cut == 'horizontal':
+            # cut_line = geometry.LineString([
+            #     [-1.,_CUT_AXIS],
+            #     [max(the_real_polygon[:,0]) + 1.,_CUT_AXIS],
+            #     ])
+
+            the_most_distance_x = the_real_polygon[:,0].max() + 1 
+            # the + 1 is margin of security
+
             cut_line = geometry.LineString([
-                [-1.,_CUT_AXIS],
-                [max(suposted_polygon[:,0])+1.,_CUT_AXIS],
-                ])
+                (-1,_CUT_AXIS),
+                (the_most_distance_x, _CUT_AXIS),
+            ])
         elif axis_to_cut == 'vertical':
             pass
             cut_line = geometry.LineString([
                 [_CUT_AXIS,-1.],
-                [_CUT_AXIS,max(suposted_polygon[:,1])+1.]
-                
+                [_CUT_AXIS,max(the_real_polygon[:,1])+1.]                
                 ])
+
         else:
             raise Exception("The axis_to_cut parameter need to be 'vertical' or 'horizontal' ")
         
         from shapely import ops 
-        data = ops.split(poligono,cut_line)
+        data = ops.split(polygon_object,cut_line)
         i = 0
         if len(data) == 2:
             pass
@@ -264,7 +293,7 @@ class TransversalSectionComposer:
         centroids = data[i].centroid.coords[0]
         
         """
-        Se a região de corte não existir, o valor é posto por inteiro
+        Se a região de corte estiver no ponto mínimo, o valor é posto por inteiro, logo deve-se fazer a correção
         """
         if not _CUT_AXIS == min(polygon[:,1]):
             centroid_result = centroids[1] # o indice '0' é para o eixo 'horizontal' e o indice '1' para o eixo 'vertical'
@@ -273,28 +302,61 @@ class TransversalSectionComposer:
             centroid_result = 0.0
             area_result = 0.0
 
+        mm = matrix_cut_representation
+
+        # find the initial point, needed to be applied in transversal_cut method
+        mask = np.equal(mm,[0,0],).all(axis = 1)
+        index_mask = int(np.where(mask)[0][0]) 
+        # convert ndarray int 64 for int python type
+        
+        first_part = mm[index_mask:,:].copy()
+        last_part = mm[:index_mask,:].copy()
+        if not np.equal(last_part[-1,:],[0,0]).all():
+            last_part = np.vstack([last_part,[0,0]])
+        new_mm = np.vstack([first_part,last_part])
+
         return {
             'numeric' : matrix_cut_representation,
             'centroids' : centroid_result,
             'area' : area_result,
             'cut' : cut_axis,
+            'numeric rotated' : new_mm
             }
-        
 
-    def _superior_cut(self,listOf_polygons,distances,cut_axis):    
-        lof = []
-        _CUT_AXIS = cut_axis    
-        sections = listOf_polygons
-        distances = distances
-        for section,distance in zip(sections,distances):
-            temp = self._transversal_cut(section,cut_axis = _CUT_AXIS)
-            max_value_x = temp['numeric'][:,0].max()
-            mm = temp['numeric']
-            mask = mm[:,1] == mm[:,1].max()
-            value_c = mm[mask][:,0].max()
-            lof.append([distance,value_c])
+
+
+    def extract_transversal_view_to_superior_view(self, list_of_pair_distance_and_max_value_of_x, distance, temp, position_of_slice = None):
+        matrix_representation_from_polygon_cutted = temp['numeric']
+        mask = matrix_representation_from_polygon_cutted[:,1] == matrix_representation_from_polygon_cutted[:,1].max()
+
+        if position_of_slice == 'begin' or position_of_slice == 'end':
+            value_c = matrix_representation_from_polygon_cutted[mask][:,0].min()
             
-        numeric_lof = np.array(lof)
+        else:
+            value_c = matrix_representation_from_polygon_cutted[mask][:,0].max()
+
+        value_c = np.unique(matrix_representation_from_polygon_cutted[mask], axis = 1)[:,0].max()
+        list_of_pair_distance_and_max_value_of_x.append([distance,value_c]) 
+
+    def _superior_cut(self,sections : np.ndarray ,distances : np.ndarray ,cut_axis : float or int):    
+        import pdb
+        list_of_pair_distance_and_max_value_of_x = []
+        _CUT_AXIS = cut_axis    
+        for ind, (section,distance) in enumerate(zip(sections,distances)):
+            temp = self._transversal_cut(section,cut_axis = _CUT_AXIS)
+            # max_value_x = temp['numeric'][:,0].max()
+            
+            if ind == 0:
+                pass
+
+            # this block of code extract the view 
+            self.extract_transversal_view_to_superior_view(list_of_pair_distance_and_max_value_of_x, distance, temp)
+
+            if ind == len(distances):
+                pass
+            
+        pdb.set_trace()
+        numeric_lof = np.array(list_of_pair_distance_and_max_value_of_x)
         
         if numeric_lof[-1,1] != 0.0:
             numeric_lof = np.append(numeric_lof,
@@ -311,6 +373,8 @@ class TransversalSectionComposer:
             'area' : poligono.area,
             'cut' : cut_axis,
             }
+
+    
         
      
     def _lateral_cut(self,listOf_sections,distances,cut_axis):
