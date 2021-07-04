@@ -38,7 +38,7 @@ class TransversalSectionComposer:
         self.attr = {}
 
     def _basify(self, numeric_value):
-        print(" Método basify ainda não implementado")
+        # print(" Método basify ainda não implementado")
         return numeric_value
         pass
 
@@ -104,7 +104,7 @@ class TransversalSectionComposer:
             attrs['area'].append(serie_area.drop_duplicates())
             attrs['centroid'].append(serie_centroid.drop_duplicates())
             # attrs['numeric'].append(serie_numeric)
-
+        # print
         polygon_index = pd.Series(
             data=[i for i in distances], name="Distances")
 
@@ -122,6 +122,13 @@ class TransversalSectionComposer:
             dataframe_area.index.values, name="Distance at height (doubled)")
         dataframe_area.columns = pd.Series(
             dataframe_area.columns.values, name="Distance in length")
+
+        dataframe_centroid.index = pd.Series(
+            dataframe_centroid.index.values, name="Distance at height (doubled)")
+        dataframe_centroid.columns = pd.Series(
+            dataframe_centroid.columns.values, name="Distance in length")
+
+        
 
         self.primitive_geometry_attributes['transversal area'] = dataframe_area
         self.primitive_geometry_attributes['transversal centroid'] = dataframe_centroid
@@ -182,7 +189,7 @@ class TransversalSectionComposer:
                 "Operations with 3D matrizes is not implemented yet")
         else:
             new_instance.isMatrix = False
-        print("Criando uma nova instancia")
+        # print("Criando uma nova instancia")
 
         new_instance._create_superior_attributes(**kwargs)
         new_instance._create_transversal_attributes(**kwargs)
