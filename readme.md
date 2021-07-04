@@ -1,3 +1,3 @@
-- [] Verificar o método "Trasversal_cut" para saber se este está calculando corretamente a área e o centroide das seções transversais
+- [x] Verificar o método "Trasversal_cut" para saber se este está calculando corretamente a área e o centroide das seções transversais
 - [x] Estudar os vídeos do Dechamps para verificar como fazer a comunicação
-- [ ] Verificar a o uso da bibioteca interna canvas
+- [ ] terminar a função _create_superior_attributes e inserir os resultados no atributo primitive_geometry_attributes
