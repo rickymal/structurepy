@@ -30,9 +30,9 @@ class ShipArchitecture(TransversalSectionComposer):
    
         l = 100
         volume_content = list()
-        import pdb
+        # import pdb
         for _, area in dataframe_area.iterrows():
-            # pdb.set_trace()
+            # # pdb.set_trace()
             print("content")
             if len(area.dropna()) == 1:
                 print("O conteudo não possui valores suficientes para integração numérica")

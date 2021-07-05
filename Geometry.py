@@ -32,22 +32,21 @@ class TransversalSectionComposer:
         return c2
 
     def __init__(self):
-        self.representations = {}
-        self.perspectives = {}
-        self.primitive_geometry_attributes = {}
-        self.attr = {}
+        self.representations = {} # show the many different representations of the object with the primitives python variables, is very similar to primitive_geometry_attributes so be careful
+        self.perspectives = {} # store the list of matrizes representing the many different in perspectives
+        self.primitive_geometry_attributes = {} # similar to representations (I need to resolve this)
+        self.attr = {} # store sobre extra attributes for geometry if necessary. For scalability
 
     def _basify(self, numeric_value):
         # print(" Método basify ainda não implementado")
         return numeric_value
-        pass
 
     def _load_attributes(self):
         return self.primitive_geometry_attributes
 
     def get_axis_values_unified(self, axis: str or int = 'y'):
         if 'numeric' not in self.representations:
-            raise Exception("The representations wasn't found.")
+            raise Exception("The attribute 'numeric' in representations wasn't found.")
         if isinstance(axis, str):
             if axis == 'y':
                 axis = 1
@@ -55,11 +54,11 @@ class TransversalSectionComposer:
                 axis = 0
             else:
                 raise Exception(
-                    "The parameter axis inserted was not recognized. The value was: " + axis)
+                    "The parameter axis inserted was not recognized. The value was: " + axis + ". use 'y', 'x', 0 or 1")
         else:
             if axis != 0 or axis != 1:
                 raise Exception(
-                    "The parameter axis inserted was not recognized. The value was: " + axis)
+                    "The parameter axis inserted was not recognized. The value was: " + axis + ". use 'y', 'x', 0 or 1")
 
         axis_values_disposable = np.concatenate(
             self.representations['numeric'], axis=0)[:, axis]
@@ -72,12 +71,15 @@ class TransversalSectionComposer:
         attrs = dict(area=[], centroid=[], numeric=[])
         cut_superior = [self._superior_cut(polygons, self.representations['distances'], cut_axis=y_) for y_ in y_axis]
         
+        # Falta calcular a área e o volume e registrar, colocar o get_primitives ou no representations 
+        # representations mostra a representação do objeto
+        
 
     def _create_transversal_attributes(self, **kwargs):
         distances = self.distances
         polygons = self.representations['numeric']
 
-        attrs = dict(area=[], centroid=[], numeric=[])
+        attributes_to_be_stored = dict(area=[], centroid=[], numeric=[])
 
         for i in range(len(polygons)):
             # calculo de área
@@ -101,18 +103,18 @@ class TransversalSectionComposer:
                 data=data_centroid, index=y_axis, dtype=np.float16)
             #serie_numeric = pd.Series(data = data_numeric,index = y_axis,dtype = np.float16)
 
-            attrs['area'].append(serie_area.drop_duplicates())
-            attrs['centroid'].append(serie_centroid.drop_duplicates())
-            # attrs['numeric'].append(serie_numeric)
+            attributes_to_be_stored['area'].append(serie_area.drop_duplicates())
+            attributes_to_be_stored['centroid'].append(serie_centroid.drop_duplicates())
+            # attributes_to_be_stored['numeric'].append(serie_numeric)
         # print
         polygon_index = pd.Series(
             data=[i for i in distances], name="Distances")
 
-        dataframe_area = pd.concat(attrs['area'], axis=1).interpolate(
+        dataframe_area = pd.concat(attributes_to_be_stored['area'], axis=1).interpolate(
             method='index', limit_area='inside')
         dataframe_area.columns = polygon_index
 
-        dataframe_centroid = pd.concat(attrs['centroid'], axis=1).interpolate(
+        dataframe_centroid = pd.concat(attributes_to_be_stored['centroid'], axis=1).interpolate(
             method='index', limit_area='inside')
         dataframe_centroid.columns = polygon_index
 
@@ -132,7 +134,7 @@ class TransversalSectionComposer:
 
         self.primitive_geometry_attributes['transversal area'] = dataframe_area
         self.primitive_geometry_attributes['transversal centroid'] = dataframe_centroid
-        self.primitive_geometry_attributes['transversal numeric'] = attrs['numeric']
+        self.primitive_geometry_attributes['transversal numeric'] = attributes_to_be_stored['numeric']
 
         # Calculo do volume
         """
@@ -227,7 +229,7 @@ class TransversalSectionComposer:
         self.representations['superior_view'] = lof_n
 
     def _attributes_lateral(self,):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def _transversal_cut(self, polygon: np.ndarray, cut_axis: float = 0.5, axis_to_cut: str = 'horizontal'):
 
@@ -240,15 +242,15 @@ class TransversalSectionComposer:
         if _CUT_AXIS is None:
             _CUT_AXIS = max(polygon[:, 1])  # it won't make cut
 
-        suposted_polygon = polygon
-        # the name is "suposted_polygon" because it not known yet if this matrix is closed
+        supposedly_polygon = polygon
+        # the name is "supposedly_polygon" because it not known yet if this matrix is closed
 
         # The matrix is closed? If not, this piece of code will extends the line to 0 coordinate at 'x'
-        if suposted_polygon[-1, 0] != 0.0:
-            suposted_polygon = np.append(suposted_polygon,
-                                         [0, suposted_polygon[-1, 1]]).reshape(-1, 2).astype(np.float16)
+        if supposedly_polygon[-1, 0] != 0.0:
+            supposedly_polygon = np.append(supposedly_polygon,
+                                         [0, supposedly_polygon[-1, 1]]).reshape(-1, 2).astype(np.float16)
 
-        the_real_polygon = suposted_polygon
+        the_real_polygon = supposedly_polygon
         ring_polygon = geometry.LinearRing(the_real_polygon)
         polygon_object = geometry.Polygon(ring_polygon)
         if axis_to_cut == 'horizontal':
@@ -273,7 +275,7 @@ class TransversalSectionComposer:
 
         else:
             raise Exception(
-                "The axis_to_cut parameter need to be 'vertical' or 'horizontal' ")
+                "The 'axis_to_cut' parameter need to be 'vertical' or 'horizontal', not " + axis_to_cut)
 
         from shapely import ops
         data = ops.split(polygon_object, cut_line)
@@ -309,25 +311,25 @@ class TransversalSectionComposer:
             centroid_result = 0.0
             area_result = 0.0
 
-        mm = matrix_cut_representation
+        
 
         # find the initial point, needed to be applied in transversal_cut method
-        mask = np.equal(mm, [0, 0],).all(axis=1)
+        mask = np.equal(matrix_cut_representation, [0, 0],).all(axis=1)
         index_mask = int(np.where(mask)[0][0])
         # convert ndarray int 64 for int python type
 
-        first_part = mm[index_mask:, :].copy()
-        last_part = mm[:index_mask, :].copy()
+        first_part = matrix_cut_representation[index_mask:, :].copy()
+        last_part = matrix_cut_representation[:index_mask, :].copy()
         if not np.equal(last_part[-1, :], [0, 0]).all():
             last_part = np.vstack([last_part, [0, 0]])
-        new_mm = np.vstack([first_part, last_part])
+        new_matrix_cut_representation = np.vstack([first_part, last_part])
 
         return {
             'numeric': matrix_cut_representation,
             'centroids': centroid_result,
             'area': area_result,
             'cut': cut_axis,
-            'numeric rotated': new_mm
+            'numeric rotated': new_matrix_cut_representation
         }
 
     def extract_transversal_view_to_superior_view(self, list_of_pair_distance_and_max_value_of_x, distance, polygon_content, position_of_section=None):
@@ -347,9 +349,10 @@ class TransversalSectionComposer:
             #     :, 0].max()
         else:
             raise Exception(
-                "The parameter 'position_of_section' received an invalid value. The value is: " + position_of_section)
+                "The parameter 'position_of_section' received an invalid value. received: " + position_of_section)
 
         list_of_pair_distance_and_max_value_of_x.append([value_c, distance])
+
 
     def _superior_cut(self, sections: np.ndarray, distances: np.ndarray, cut_axis: float or int):
         # # set_trace()
